@@ -1,6 +1,8 @@
 import logging
+from statistics import mean, mode, median
 
 from hh_connector import Hh
+from graph import Graph
 from config import TG_BOT_TOKEN
 
 from aiogram import Bot, Dispatcher, executor, types
@@ -20,7 +22,10 @@ class ShowSalaryGraph(StatesGroup):
 
 @dp.message_handler(commands=["show_salary_graph"], state='*')
 async def show_salary_graph(message: types.Message):
-    await message.reply("Чтобы получить график интересующих вас зарплат, введите должность, которую вы ищете")
+    await message.reply("""
+    Чтобы получить график интересующих вас зарплат, введите должность, которую вы ищете
+    Подсказка: Если ввести 'врач', то поиск зарплат будет по всей стране
+    Локализировать поиск можно введя 'новосибирск врач'""")
     await ShowSalaryGraph.waiting_for_specialisation.set()
     return
 
@@ -31,14 +36,17 @@ async def enter_specialisation(message: types.Message, state: FSMContext):
     hh_obj = Hh()
     try:
         salaries = await hh_obj.get_salary_normal(message.text)
-        graph = hh_obj.get_graph(salaries)
-
-        await message.answer(f"График зарплат по профессии: {message.text}")
-        await message.reply_photo(photo=graph)
-        graph.close()
+        if salaries:
+            with Graph(salaries) as graph:
+                await message.answer(f"График зарплат по профессии: {message.text}")
+                await message.answer(f"""Среднее значение: {round(mean(salaries)):,} р.\nМода(зарплата которая встречается чаще других): {round(mode(salaries)):,}р.\nМедиана:{round(median(salaries)):,}""")
+                await message.reply_photo(photo=graph)
+        else:
+            await message.answer(f"По запросу: '{message.text}' не найдено ни одной зарплаты")
     except Exception as e:
         logging.error(e, exc_info=True)
         await message.answer(f"Возникла ошибка, обратитесь в поддержку или попробуйте снова через минуту")
+
     await state.finish()
 
 

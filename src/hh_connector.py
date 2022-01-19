@@ -1,8 +1,7 @@
 import asyncio
 import urllib.parse
-import io
+from statistics import mean
 
-import matplotlib.pyplot as plt
 import httpx
 
 from config import MY_EMAIL
@@ -55,27 +54,8 @@ class Hh:
                 salary = req["salary"]
                 if salary:
                     min_s, max_s = self.__convert_salary(salary)
-                    salaries.append(round((max_s + min_s) / 2))  # среднее арифметическое
-        return salaries  # todo add median, moda
-
-    @staticmethod
-    def get_graph(values: list, bins: int = 10, xlabel: str = 'зарплата, рубли', ylabel: str = 'Количество вакансий',
-                  title: str = 'Распределение суммы зарплат от количества вакансий',
-                  color: str = 'green') -> io.BytesIO:
-        hst = plt.hist(values, bins, (0, max(values)), color=color,
-                       histtype='bar', rwidth=0.8)
-        # x-axis label
-        plt.xlabel(xlabel)
-        # frequency label
-        plt.ylabel(ylabel)
-        # plot title
-        plt.title(title)
-        # function to show the plot
-
-        buffer = io.BytesIO()
-        plt.savefig(buffer, format='png')
-        buffer.seek(0)
-        return buffer  ### you must close buffer if you use it
+                    salaries.append(round(mean([max_s, min_s])))  # среднее арифметическое
+        return salaries
 
     def __convert_salary(self, salary: dict) -> (float, float):
         salary_from = salary['from'] if salary['from'] else salary['to']
