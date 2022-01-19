@@ -22,12 +22,22 @@ class ShowSalaryGraph(StatesGroup):
 
 @dp.message_handler(commands=["show_salary_graph"], state='*')
 async def show_salary_graph(message: types.Message):
-    await message.reply("""
-    Чтобы получить график интересующих вас зарплат, введите должность, которую вы ищете
-    Подсказка: Если ввести 'врач', то поиск зарплат будет по всей стране
-    Локализировать поиск можно введя 'новосибирск врач'""")
+    await message.reply("""Чтобы получить график интересующих вас зарплат, введите название *должности* или *навык*""", parse_mode="Markdown")
     await ShowSalaryGraph.waiting_for_specialisation.set()
     return
+
+
+@dp.message_handler(commands=["show_search_help"])
+async def show_search_help(message: types.Message):
+    await message.answer('''
+Если ввести *врач*, то поиск зарплат будет по всей стране.
+Локализировать поиск можно введя *новосибирск врач*
+
+Если поиск идёт по языкам программирования, 
+то для более точного результата необходимо написать технологию а не язык, 
+чтобы выборка получалась более репрезентативная. 
+
+Лучше написать *django* чем *python* ''', parse_mode="Markdown")
 
 
 @dp.message_handler(state=ShowSalaryGraph.waiting_for_specialisation)
@@ -51,9 +61,10 @@ async def enter_specialisation(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler()
-async def answer_tmpl(message):
+async def main_tmpl(message):
     answer = """
-       /show_salary_graph - Построить график зарплат
+/show_salary_graph - Построить график зарплат
+/show_search_help - Подсказка для более точного поиска
        """
     await message.reply(answer)
 
