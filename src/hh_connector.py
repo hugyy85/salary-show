@@ -23,12 +23,13 @@ class Hh:
             self.currency_data['BYR'] = self.currency_data['BYN']  # in api.hh.ru BYR is BYN from central bank
         return self.currency_data
 
-    async def get_vacancies(self, skill_name: str, page: int, per_page=100) -> dict:
+    async def get_vacancies(self, skill_name: str, page: int, per_page=100, **kwargs) -> dict:
         params = {
             'per_page': per_page,
             'text': skill_name,
             'page': page,
-            'only_with_salary': 'true'
+            'only_with_salary': 'true',
+            **kwargs
         }
         async with httpx.AsyncClient() as session:
             response = await session.get(self.vacancies_url, params=params, headers=self.headers)
@@ -53,11 +54,11 @@ class Hh:
             for req in response_data[0]['items']: # [0] here because asyncio.gather return new list for each task
                 salary = req["salary"]
                 if salary:
-                    min_s, max_s = self.__convert_salary(salary)
+                    min_s, max_s = self.convert_salary(salary)
                     salaries.append(round(mean([max_s, min_s])))  # среднее арифметическое
         return salaries
 
-    def __convert_salary(self, salary: dict) -> (float, float):
+    def convert_salary(self, salary: dict) -> (float, float):
         salary_from = salary['from'] if salary['from'] else salary['to']
         salary_to = salary['to'] if salary['to'] else salary['from']
         if salary['currency'] != 'RUR':
@@ -68,19 +69,10 @@ class Hh:
             salary_from -= (salary_from * 0.13)
             salary_to -= (salary_to * 0.13)
 
-        return salary_from, salary_to
+        return round(salary_from), round(salary_to)
 
     async def get_best_salaries(self, query_text: str, limit: int = 10):
         """Поиск лучших зарплат"""
-        params = {
-            'order_by': 'salary_desc',
-            'per_page': limit,
-            'text': query_text,
-            'page': 0,
-            'only_with_salary': True
-        }
-        response_data = await self.get_vacancies(params)
+        response_data = await self.get_vacancies(query_text, page=0, per_page=limit, order_by='salary_desc')
         await self.add_currency_data_if_none()
-        for req in response_data['items']:
-            min_s, max_s = self.__convert_salary(req['salary'])
-            print(req['name'], f'min {min_s:,} max {max_s:,} - {req["alternate_url"]}')
+        return response_data['items']
