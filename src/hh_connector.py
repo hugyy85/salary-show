@@ -24,7 +24,13 @@ class Hh:
             self.currency_data['BYR'] = self.currency_data['BYN']  # in api.hh.ru BYR is BYN from central bank
         return self.currency_data
 
-    async def get_vacancies(self, params: dict) -> dict:
+    async def get_vacancies(self, skill_name: str, page: int, per_page=100) -> dict:
+        params = {
+            'per_page': per_page,
+            'text': skill_name,
+            'page': page,
+            'only_with_salary': 'true'
+        }
         async with httpx.AsyncClient() as session:
             response = await session.get(self.vacancies_url, params=params, headers=self.headers)
             response.raise_for_status()
@@ -32,29 +38,25 @@ class Hh:
         return response_data
 
     async def get_salary_normal(self, skill_name: str):
-        params = {
-            'per_page': 100,
-            'text': skill_name,
-            'page': 0,
-            'only_with_salary': 'true'
-        }
-        response_data = await self.get_vacancies(params)
-
-        salaries = []
+        response_data = await self.get_vacancies(skill_name, page=0)
         # 2000 is constraint for api.hh.ru for without paying
         response_count = response_data['pages'] if response_data['found'] > 2000 else response_data['pages'] + 1
         await self.add_currency_data_if_none()
 
-        for page in range(1, response_count):
-            for req in response_data['items']:
+        # make async requests to api
+        responses_tasks = []
+        for page in range(response_count):
+            responses_tasks.append(asyncio.gather(self.get_vacancies(skill_name, page=page), return_exceptions=True))
+        responses = await asyncio.gather(*responses_tasks, return_exceptions=True)
+
+        salaries = []
+        for response_data in responses:
+            for req in response_data[0]['items']: # [0] here because asyncio.gather return new list for each task
                 salary = req["salary"]
-                if salary and self.currency_data.get(salary['currency']):
+                if salary:
                     min_s, max_s = self.__convert_salary(salary)
-                    print(req['name'], f'min {min_s:,} max {max_s:,} - {req["alternate_url"]}')
-                    salaries.append((max_s + min_s) / 2)  # среднее арифметическое
-            params['page'] = page
-            response_data = await self.get_vacancies(params)
-        return salaries #todo add median, moda
+                    salaries.append(round((max_s + min_s) / 2))  # среднее арифметическое
+        return salaries  # todo add median, moda
 
     @staticmethod
     def get_graph(values: list, bins: int = 10, xlabel: str = 'зарплата, рубли', ylabel: str = 'Количество вакансий',
@@ -70,10 +72,10 @@ class Hh:
         plt.title(title)
         # function to show the plot
 
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-        buf.seek(0)
-        return buf  ### you must close buffer if you use it
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png')
+        buffer.seek(0)
+        return buffer  ### you must close buffer if you use it
 
     def __convert_salary(self, salary: dict) -> (float, float):
         salary_from = salary['from'] if salary['from'] else salary['to']
