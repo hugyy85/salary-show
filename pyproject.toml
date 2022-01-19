@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "salary-show"
+version = "0.1.0"
+description = "Service which show salaries and graphs"
+authors = ["Anton Batishchev <antonbat125a@yandex.ru>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.27.1"
+aiogram = "^2.18"
+matplotlib = "^3.5.1"
+aiohttp = "^3.8.1"
+httpx = "^0.21.3"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
