@@ -53,7 +53,7 @@ class Hh:
         for response_data in responses:
             for req in response_data[0]['items']: # [0] here because asyncio.gather return new list for each task
                 salary = req["salary"]
-                if salary:
+                if salary and self.currency_data.get(salary["currency"]):
                     min_s, max_s = self.convert_salary(salary)
                     salaries.append(round(mean([max_s, min_s])))  # среднее арифметическое
         return salaries
