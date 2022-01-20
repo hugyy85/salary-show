@@ -43,6 +43,8 @@ async def show_search_help(message: types.Message):
 @dp.message_handler(state=ShowSalaryGraph.waiting_for_specialisation)
 async def enter_specialisation(message: types.Message, state: FSMContext):
     await message.answer(f"Необходимо немного подождать. Обычно не больше 10 секунд . . .")
+    chat = message.chat
+    logging.info(f'CHAT_ID:{chat.id} - {chat.full_name} - {chat.mention}. Message: {message.text} ')
     try:
         hh_obj = Hh()
         salaries = await hh_obj.get_salary_normal(message.text)
