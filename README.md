@@ -1,5 +1,6 @@
 # salary-show
 Service which show salaries and graphs
+To test ,you may open telegram bot https://t.me/show_salary_bot
 
 # Deploy
 Необходимо создать и заполнить `.env` файл `cp .env.example .env`
