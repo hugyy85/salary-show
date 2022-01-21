@@ -3,6 +3,8 @@ services:
   salary-show:
     restart: always
     build: .
+    ports:
+      - "3003:3003"
     env_file:
       - .env
 

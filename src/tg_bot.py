@@ -1,18 +1,36 @@
 import logging
 from statistics import mean, mode, median
+from urllib.parse import urljoin
 
 from hh_connector import Hh
 from graph import Graph
-from config import TG_BOT_TOKEN
+from config import TG_BOT_TOKEN, WEBAPP_HOST, WEBAPP_PORT, WEBAPP_ADDRESS, WEBHOOK_PATH, WEBHOOK_IP
 
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram.utils.executor import start_webhook
+
 bot = Bot(token=TG_BOT_TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
-logging.basicConfig(level=logging.INFO)
+
+dp.middleware.setup(LoggingMiddleware())
+
+
+async def on_startup(dp):
+    await bot.set_webhook(urljoin(WEBAPP_ADDRESS, WEBHOOK_PATH), ip_address=WEBHOOK_IP)
+
+
+async def on_shutdown(dp):
+    logging.warning('Shutting down..')
+    await bot.delete_webhook()
+    await dp.storage.close()
+    await dp.storage.wait_closed()
+
+    logging.warning('Bye!')
 
 
 class ShowSalaryGraph(StatesGroup):
@@ -33,9 +51,9 @@ async def show_search_help(message: types.Message):
 Если ввести *врач*, то поиск зарплат будет по всей стране.
 Локализировать поиск можно введя *новосибирск врач*
 
-Если поиск идёт по языкам программирования, 
-то для более точного результата необходимо написать технологию а не язык, 
-чтобы выборка получалась более репрезентативная. 
+Если поиск идёт по языкам программирования,
+то для более точного результата необходимо написать технологию а не язык,
+чтобы выборка получалась более репрезентативная.
 
 Лучше написать *django* чем *python* ''', parse_mode="Markdown")
 
@@ -97,5 +115,13 @@ async def main_tmpl(message):
     await message.reply(answer)
 
 
-if __name__ == "__main__":
-    executor.start_polling(dp)
+if __name__ == '__main__':
+    start_webhook(
+        dispatcher=dp,
+        webhook_path=WEBHOOK_PATH,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown,
+        skip_updates=True,
+        host=WEBAPP_HOST,
+        port=WEBAPP_PORT,
+    )
