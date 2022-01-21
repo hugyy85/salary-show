@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 from hh_connector import Hh
 from graph import Graph
-from config import TG_BOT_TOKEN, WEBAPP_HOST, WEBAPP_PORT, WEBAPP_ADDRESS, WEBHOOK_PATH, WEBHOOK_IP
+from config import TG_BOT_TOKEN, WEBAPP_HOST, WEBAPP_PORT, WEBAPP_ADDRESS, WEBHOOK_PATH, WEBHOOK_IP, DEBUG
 
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -17,7 +17,8 @@ from aiogram.utils.executor import start_webhook
 bot = Bot(token=TG_BOT_TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
-dp.middleware.setup(LoggingMiddleware())
+if DEBUG:
+    dp.middleware.setup(LoggingMiddleware())
 
 
 async def on_startup(dp):
