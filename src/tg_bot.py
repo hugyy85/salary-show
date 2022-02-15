@@ -15,7 +15,8 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.utils.executor import start_webhook
 
 bot = Bot(token=TG_BOT_TOKEN)
-dp = Dispatcher(bot, storage=MemoryStorage())
+STORAGE = MemoryStorage()
+dp = Dispatcher(bot, storage=STORAGE)
 
 if DEBUG:
     dp.middleware.setup(LoggingMiddleware())
@@ -75,9 +76,11 @@ async def enter_specialisation(message: types.Message, state: FSMContext):
 Мода(зарплата которая встречается чаще других): {round(mode(salaries)):,}р.
 Медиана:{round(median(salaries)):,}
 """)
+                await STORAGE.set_data(user=message.chat.username, data=message.text)
                 keyboard = types.InlineKeyboardMarkup().add(
                     types.InlineKeyboardButton('Показать 10 самых высоких должностей',
-                                               callback_data=f'show_best_salaries-{message.text}')
+                                               callback_data=f'best_salary'
+                                               )
                 )
                 await message.reply_photo(photo=graph, reply_markup=keyboard)
         else:
@@ -88,10 +91,11 @@ async def enter_specialisation(message: types.Message, state: FSMContext):
     await state.finish()
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith('show_best_salaries'))
+@dp.callback_query_handler(lambda c: c.data.startswith('best_salary'))
 async def show_best_salaries(callback_query: types.CallbackQuery):
+    user = callback_query.message.chat.username
     try:
-        text = callback_query.data.split('show_best_salaries-')[1]
+        text = await STORAGE.get_data(user=user)
         hh_obj = Hh()
         salaries = await hh_obj.get_best_salaries(text)
         answer = ''
@@ -105,6 +109,8 @@ async def show_best_salaries(callback_query: types.CallbackQuery):
         logging.error(e, exc_info=True)
         await bot.send_message(callback_query.from_user.id,
                                f"Возникла ошибка, обратитесь в поддержку или попробуйте снова через минуту")
+    finally:
+        await STORAGE.reset_data(user=user)
 
 
 @dp.message_handler()
