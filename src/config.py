@@ -15,6 +15,6 @@ WEBHOOK_PATH = '/api/v1/tg_webhook'
 WEBAPP_ADDRESS = os.getenv('WEBAPP_ADDRESS')
 WEBHOOK_IP = os.getenv('WEBHOOK_IP')
 WEBAPP_HOST = os.getenv('WEBAPP_HOST') or '0.0.0.0'
-WEBAPP_PORT = int(os.getenv('WEBAPP_PORT')) or 3003
+WEBAPP_PORT = int(os.getenv('WEBAPP_PORT')) if os.getenv('WEBAPP_PORT') else 3003
 
 MY_EMAIL = os.getenv('MY_EMAIL')
