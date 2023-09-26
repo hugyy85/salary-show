@@ -43,15 +43,10 @@ class Hh:
         response_count = response_data['pages'] if response_data['found'] > 2000 else response_data['pages'] + 1
         await self.add_currency_data_if_none()
 
-        # make async requests to api
-        responses_tasks = []
-        for page in range(response_count):
-            responses_tasks.append(asyncio.gather(self.get_vacancies(skill_name, page=page), return_exceptions=True))
-        responses = await asyncio.gather(*responses_tasks, return_exceptions=True)
-
         salaries = []
-        for response_data in responses:
-            for req in response_data[0]['items']: # [0] here because asyncio.gather return new list for each task
+        for page in range(response_count):
+            request = await self.get_vacancies(skill_name, page=page)
+            for req in request['items']:
                 salary = req["salary"]
                 if salary and self.currency_data.get(salary["currency"]):
                     min_s, max_s = self.convert_salary(salary)
