@@ -76,7 +76,7 @@ async def enter_specialisation(message: types.Message, state: FSMContext):
 Мода(зарплата которая встречается чаще других): {round(mode(salaries)):,}р.
 Медиана:{round(median(salaries)):,}
 """)
-                await STORAGE.set_data(user=message.chat.username, data=message.text)
+                await STORAGE.set_data(user=message.chat.id, data=message.text)
                 keyboard = types.InlineKeyboardMarkup().add(
                     types.InlineKeyboardButton('Показать 10 самых высоких должностей',
                                                callback_data=f'best_salary'
@@ -93,7 +93,7 @@ async def enter_specialisation(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(lambda c: c.data.startswith('best_salary'))
 async def show_best_salaries(callback_query: types.CallbackQuery):
-    user = callback_query.message.chat.username
+    user = callback_query.message.chat.id
     try:
         text = await STORAGE.get_data(user=user)
         hh_obj = Hh()
