@@ -15,8 +15,7 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.utils.executor import start_webhook
 
 bot = Bot(token=TG_BOT_TOKEN)
-STORAGE = MemoryStorage()
-dp = Dispatcher(bot, storage=STORAGE)
+dp = Dispatcher(bot, storage=MemoryStorage())
 
 if DEBUG:
     dp.middleware.setup(LoggingMiddleware())
@@ -76,10 +75,9 @@ async def enter_specialisation(message: types.Message, state: FSMContext):
 Мода(зарплата которая встречается чаще других): {round(mode(salaries)):,}р.
 Медиана:{round(median(salaries)):,}
 """)
-                await STORAGE.set_data(user=message.chat.id, data=message.text)
                 keyboard = types.InlineKeyboardMarkup().add(
                     types.InlineKeyboardButton('Показать 10 самых высоких должностей',
-                                               callback_data=f'best_salary'
+                                               callback_data=f'best_salary-:{message.text}'
                                                )
                 )
                 await message.reply_photo(photo=graph, reply_markup=keyboard)
@@ -93,15 +91,16 @@ async def enter_specialisation(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(lambda c: c.data.startswith('best_salary'))
 async def show_best_salaries(callback_query: types.CallbackQuery):
-    user = callback_query.message.chat.id
     try:
-        text = await STORAGE.get_data(user=user)
+        text = callback_query.data.split('-:')[1]
         hh_obj = Hh()
         salaries = await hh_obj.get_best_salaries(text)
         answer = ''
         for salary in salaries:
             min_salary, max_salary = hh_obj.convert_salary(salary['salary'])
-            answer += f"{salary['name']}, От {min_salary:,} До {max_salary:,} - {salary['alternate_url']}\n\n"
+            min_salary = hh_obj.convert_to_thousands(min_salary)
+            max_salary = hh_obj.convert_to_thousands(max_salary)
+            answer += f"{salary['name']}, От {min_salary} До {max_salary} - {salary['alternate_url']}\n\n"
 
         await bot.answer_callback_query(callback_query.id)
         await bot.send_message(callback_query.from_user.id, answer)
@@ -109,8 +108,6 @@ async def show_best_salaries(callback_query: types.CallbackQuery):
         logging.error(e, exc_info=True)
         await bot.send_message(callback_query.from_user.id,
                                f"Возникла ошибка, обратитесь в поддержку или попробуйте снова через минуту")
-    finally:
-        await STORAGE.reset_data(user=user)
 
 
 @dp.message_handler()

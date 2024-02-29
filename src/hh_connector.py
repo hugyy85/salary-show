@@ -1,4 +1,3 @@
-import asyncio
 import urllib.parse
 from statistics import mean
 
@@ -71,3 +70,7 @@ class Hh:
         response_data = await self.get_vacancies(query_text, page=0, per_page=limit, order_by='salary_desc')
         await self.add_currency_data_if_none()
         return response_data['items']
+
+    @staticmethod
+    def convert_to_thousands(number):
+        return f"{number // 1000} тыс. руб." if number > 1000 else f"{number} руб."
